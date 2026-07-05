@@ -1,0 +1,160 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  font-family: sans-serif;
+  background: #f5f0e8;
+}
+.bg { position: fixed; inset: 0; background-image: url("../images/battle_field.png"); background-size: cover; background-position: center; z-index: 0; }
+.battle-screen {
+  position: relative;
+  z-index: 1;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+}
+.top-right-ui { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; z-index: 10; }
+.score-box { background: rgba(0,0,0,0.65); color: #fff; font-size: 16px; font-weight: bold; padding: 4px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.3); text-align: right; }
+.score-box .label { font-size: 10px; color: #aaa; margin-bottom: 1px; }
+.score-row { display: flex; gap: 10px; font-size: 18px; }
+.score-player { color: #ffdd55; }
+.score-cpu { color: #88ccff; }
+.enemy-area { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 4px; }
+.enemy-hand { display: flex; gap: 6px; justify-content: center; }
+.player-area { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding-bottom: 4px; width: 100%; }
+.player-hand { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.yamafuda-stack { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.yamafuda { width: 50px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5)); }
+.yamafuda-count { font-size: 11px; font-weight: bold; color: #fff; text-shadow: 1px 1px 3px #000; }
+.turn-end-btn { width: 60px; height: 28px; background: #4b0000; color: #fff; font-size: 11px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+.turn-end-btn:active { transform: translateY(2px); }
+.turn-end-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ドラッグ対象の手札カード（PCブラウザでもドラッグできるよう user-drag は指定しない） */
+.card { width: 60px; border-radius: 6px; transition: transform 0.15s; filter: drop-shadow(1px 3px 5px rgba(0,0,0,0.4)); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.card.playable { cursor: grab; }
+.card.playable:hover { transform: translateY(-6px) scale(1.05); }
+.card.not-playable { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.card.dragging { opacity: 0.4; }
+
+.card-back { width: 50px; border-radius: 6px; filter: drop-shadow(1px 3px 5px rgba(0,0,0,0.4)); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+.battle-zone { display: flex; align-items: center; justify-content: center; flex: 1; position: relative; width: 100%; }
+.battle-slot { width: 70px; height: 100px; border: 3px dashed rgba(255,255,255,0.4); border-radius: 10px; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; font-size: 11px; color: rgba(255,255,255,0.5); position: relative; overflow: hidden; transition: border-color 0.2s, background 0.2s; }
+.battle-slot.drag-over { border-color: gold; background: rgba(255,215,0,0.2); }
+.battle-slot.highlight { border-color: #ff8640; background: rgba(255,134,64,0.2); animation: pulse 1s infinite; }
+.battle-slot img { width: 100%; height: 100%; object-fit: contain; border-radius: 7px; cursor: grab; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+.bench-slot { width: 50px; height: 70px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 6px; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; font-size: 9px; color: rgba(255,255,255,0.3); transition: border-color 0.2s, background 0.2s; }
+.bench-slot.drag-over { border-color: gold; background: rgba(255,215,0,0.2); }
+.bench-slot.highlight { border-color: #ff8640; background: rgba(255,134,64,0.2); animation: pulse 1s infinite; }
+.bench-slot img { width: 100%; border-radius: 4px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+.result-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: bold; color: #fff; text-shadow: 0 0 20px #000, 2px 2px 4px #000; z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+.result-popup.show { opacity: 1; }
+img{
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,134,64,0.6); } 50% { box-shadow: 0 0 0 8px rgba(255,134,64,0); } }
+
+/* チュートリアルUI */
+#tutorialOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* キャラと吹き出しのラッパー：画面上部に固定（バトル場と被らないように） */
+#tutorialBox {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  pointer-events: none;
+}
+
+#tutorialCharacter {
+  width: 100px;
+  border: 5px solid gold;
+  box-shadow: 0 0 0 2px #b8860b, 0 0 0 4px gold, 0 0 0 6px #b8860b;
+  border-radius: 4px;
+  background: #8b0000;
+  pointer-events: none;
+  display: block;
+}
+
+#tutorialDialog {
+  width: 92%;
+  max-width: 500px;
+  background: rgba(0,0,0,0.88);
+  color: white;
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.15);
+  pointer-events: all;
+  margin-top: 8px;
+}
+
+#tutorialNameTag {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+#tutorialNameTag.guide { background: #ff8640; color: #fff; }
+#tutorialNameTag.enemy { background: #4b0000; color: #fff; }
+#tutorialText {
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 50px;
+}
+#tutorialNextBtn {
+  margin-top: 10px;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #ff8640;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+}
+#tutorialNextBtn:active { opacity: 0.8; }
+
+/* 終了画面 */
+#endScreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+#endScreen h2 { color: #ffdd55; font-size: 30px; text-shadow: 0 0 20px #ffdd55; }
+#endScreen p { color: #fff; font-size: 15px; text-align: center; padding: 0 20px; }
+#endScreen button {
+  width: 180px; height: 50px;
+  border: none; border-radius: 14px;
+  font-size: 16px; font-weight: bold;
+  cursor: pointer;
+}
+.btn-home { background: #4b0000; color: #fff; }
+.btn-battle { background: #ff8640; color: #fff; }
