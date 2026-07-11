@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="images/icon.png">
+<meta name="theme-color" content="#5b0000">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>字変 - ミッション</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  font-family: sans-serif;
+  background: radial-gradient(circle at top, #ffffff 0%, #ffffff 50%, #ff8640 100%);
+  background-attachment: fixed;
+  padding-bottom: 40px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 20px 16px 10px;
+  gap: 12px;
+}
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #4b0000;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: bold;
+  color: #4b0000;
+  letter-spacing: 3px;
+}
+
+.desc {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+  padding: 0 20px;
+}
+
+.reward-banner {
+  margin: 0 16px 20px;
+  background: linear-gradient(135deg, #4b0000, #8b0000);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.reward-banner img { height: 40px; width: auto; }
+.reward-text .label { font-size: 12px; opacity: 0.8; }
+.reward-text .amount { font-size: 22px; font-weight: bold; }
+
+/* スタンプ台紙 */
+.stamp-card {
+  margin: 0 16px 24px;
+  background: #fffdf5;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border: 3px solid #f0d090;
+}
+.stamp-card-title {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #4b0000;
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+.stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stamp-cell {
+  aspect-ratio: 1;
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.stamp-cell.done {
+  border-color: #8b0000;
+  background: #fff5f5;
+}
+.stamp-img {
+  width: 80%;
+  opacity: 0;
+  transform: scale(0.5) rotate(-15deg);
+  transition: opacity 0.4s, transform 0.4s;
+  position: absolute;
+  pointer-events: none;
+}
+.stamp-cell.done .stamp-img {
+  opacity: 1;
+  transform: scale(1) rotate(-8deg);
+}
+.stamp-num {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ccc;
+}
+.stamp-cell.done .stamp-num { display: none; }
+
+/* ミッションリスト */
+.section-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #4b0000;
+  padding: 0 16px;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+.mission-list {
+  margin: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mission-item {
+  background: white;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.mission-item.done { background: #fff5f5; }
+.mission-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eee;
+  color: #888;
+  font-size: 13px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mission-item.done .mission-num { background: #8b0000; color: white; }
+.mission-info { flex: 1; }
+.mission-name { font-size: 14px; font-weight: bold; color: #333; }
+.mission-item.done .mission-name { color: #8b0000; }
+.mission-desc { font-size: 12px; color: #888; margin-top: 2px; }
+.mission-check { font-size: 22px; color: #ccc; flex-shrink: 0; }
+.mission-item.done .mission-check { color: #8b0000; }
+
+/* 完了バナー */
+#completeBanner {
+  display: none;
+  margin: 0 16px 16px;
+  background: linear-gradient(135deg, #ffd700, #ff8640);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0 4px 16px rgba(255,134,64,0.4);
+  animation: shine 1.5s ease-in-out infinite alternate;
+}
+@keyframes shine {
+  from { box-shadow: 0 4px 16px rgba(255,134,64,0.4); }
+  to   { box-shadow: 0 4px 32px rgba(255,134,64,0.8); }
+}
+</style>
+</head>
+<body>
+
+<audio id="bgm" src="audio/bgm_main.mp3" loop></audio>
+
+<div class="header">
+  <button class="back-btn" onclick="location.href='home.html'">←</button>
+  <h1>初心者ミッション</h1>
+</div>
+
+<div class="desc">全部クリアして報酬をゲットしよう！</div>
+
+<div class="reward-banner">
+  <img src="images/tanzaku.png" alt="短冊">
+  <div class="reward-text">
+    <div class="label">全クリア報酬</div>
+    <div class="amount">願いの短冊 × 500枚</div>
+  </div>
+</div>
+
+<div class="stamp-card">
+  <div class="stamp-card-title">⭐ スタンプラリー ⭐</div>
+  <div class="stamp-grid" id="stampGrid"></div>
+</div>
+
+<div id="completeBanner">🎉 全ミッションクリア！願いの短冊500枚ゲット！🎉</div>
+
+<div class="section-title">📋 ミッション一覧</div>
+<div class="mission-list" id="missionList"></div>
+
+<script src="js/audio.js"></script>
+<script>
+const missions = [
+  { id: "tutorial",  name: "チュートリアルクリア",   desc: "チュートリアルバトルをクリアする" },
+  { id: "gacha1",    name: "ガチャを1回引く",         desc: "恒常ガチャを1回以上引く" },
+  { id: "deck",      name: "デッキを編成する",         desc: "12枚のデッキを完成させる" },
+  { id: "battle1",   name: "バトルに1回勝利する",      desc: "CPUとのバトルで1勝する" },
+  { id: "evolve",    name: "カードを進化させる",       desc: "進化カードをバトル場に出す" },
+  { id: "login3",    name: "3日間ログインする",        desc: "3日間連続でゲームを開く" },
+  { id: "shop",      name: "ショップで交換する",       desc: "ポイントでカードを交換する" },
+  { id: "battle5",   name: "バトルを5回勝利する",      desc: "CPUとのバトルで合計5勝する" },
+  { id: "login7",    name: "7日間ログインする",        desc: "7日間連続でゲームを開く" },
+];
+
+function getProgress() {
+  return JSON.parse(localStorage.getItem("beginnerMission")) || {};
+}
+
+function saveProgress(progress) {
+  localStorage.setItem("beginnerMission", JSON.stringify(progress));
+}
+
+function checkLoginMission() {
+  const progress = getProgress();
+  const loginData = JSON.parse(localStorage.getItem("loginStreak")) || { count: 0, lastDate: "" };
+  const today = new Date().toDateString();
+
+  if (loginData.lastDate !== today) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (loginData.lastDate === yesterday.toDateString()) {
+      loginData.count++;
+    } else {
+      loginData.count = 1;
+    }
+    loginData.lastDate = today;
+    localStorage.setItem("loginStreak", JSON.stringify(loginData));
+  }
+
+  if (loginData.count >= 3 && !progress.login3) { progress.login3 = true; }
+  if (loginData.count >= 7 && !progress.login7) { progress.login7 = true; }
+  saveProgress(progress);
+}
+
+function checkReward() {
+  const progress = getProgress();
+  const allDone = missions.every(m => progress[m.id]);
+  if (allDone && !progress.rewarded) {
+    progress.rewarded = true;
+    const tanzaku = parseInt(localStorage.getItem("tanzaku")) || 0;
+    localStorage.setItem("tanzaku", tanzaku + 500);
+    saveProgress(progress);
+  }
+}
+
+function render() {
+  const progress = getProgress();
+  const allDone = missions.every(m => progress[m.id]);
+
+  // スタンプグリッド
+  const grid = document.getElementById("stampGrid");
+  grid.innerHTML = "";
+  missions.forEach((m, i) => {
+    const cell = document.createElement("div");
+    cell.className = "stamp-cell" + (progress[m.id] ? " done" : "");
+    const img = document.createElement("img");
+    img.src = "images/stamp.png";
+    img.className = "stamp-img";
+    const num = document.createElement("div");
+    num.className = "stamp-num";
+    num.textContent = i + 1;
+    cell.appendChild(img);
+    cell.appendChild(num);
+    grid.appendChild(cell);
+  });
+
+  // ミッションリスト
+  const list = document.getElementById("missionList");
+  list.innerHTML = "";
+  missions.forEach((m, i) => {
+    const done = !!progress[m.id];
+    const item = document.createElement("div");
+    item.className = "mission-item" + (done ? " done" : "");
+    item.innerHTML = `
+      <div class="mission-num">${i + 1}</div>
+      <div class="mission-info">
+        <div class="mission-name">${m.name}</div>
+        <div class="mission-desc">${m.desc}</div>
+      </div>
+      <div class="mission-check">${done ? "✓" : "○"}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  if (allDone) {
+    document.getElementById("completeBanner").style.display = "block";
+  }
+}
+
+checkLoginMission();
+checkReward();
+render();
+</script>
+</body>
+</html>
