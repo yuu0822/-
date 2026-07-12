@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="images/icon.png">
+<meta name="theme-color" content="#5b0000">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>字変 - カスタマイズ</title>
+<style>
+* { box-sizing: border-box; }
+body{
+    margin:0;
+    padding:20px;
+    background-image:url("images/zukan_background.png");
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    font-family:sans-serif;
+    text-align:center;
+    padding-bottom:140px;
+    color:#3a2a10;
+}
+h1{ color:#4b0000; text-shadow:1px 1px 2px rgba(255,255,255,0.6); margin-bottom:6px; }
+.sub-note{ font-size:13px; color:#5b3a10; background:rgba(255,255,255,0.55); display:inline-block; padding:6px 16px; border-radius:12px; margin-bottom:20px; }
+
+.tab-row{ display:flex; justify-content:center; gap:10px; margin-bottom:22px; }
+.tab-btn{
+    padding:10px 22px; border:none; border-radius:16px; font-size:16px; font-weight:bold;
+    background:rgba(255,255,255,0.5); color:#4b0000; cursor:pointer; transition:.12s;
+}
+.tab-btn.active{ background:#4b0000; color:#fff; box-shadow:0 3px 8px rgba(0,0,0,0.3); }
+.tab-btn:active{ transform:scale(0.95); }
+
+.panel{ display:none; }
+.panel.active{ display:block; }
+
+.gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
+    gap:18px;
+    max-width:520px;
+    margin:0 auto;
+}
+.item-card{
+    background:rgba(255,255,255,0.55);
+    border:3px solid transparent;
+    border-radius:16px;
+    padding:10px;
+    cursor:pointer;
+    transition:.12s;
+}
+.item-card:active{ transform:scale(0.96); }
+.item-card.selected{ border-color:#ffcc00; box-shadow:0 0 14px rgba(255,204,0,0.7); background:rgba(255,255,255,0.85); }
+.item-card img{
+    width:100%;
+    aspect-ratio: 3/4;
+    object-fit:cover;
+    border-radius:10px;
+    background:#ccc;
+}
+.item-card .item-name{ margin-top:8px; font-size:14px; font-weight:bold; color:#4b0000; }
+.item-card .badge{
+    display:inline-block; margin-top:4px; font-size:11px; padding:2px 10px; border-radius:8px;
+    background:#4b0000; color:#fff;
+}
+.item-card.selected .badge{ background:#ffcc00; color:#4b0000; }
+
+.bottom-nav{
+  position:fixed; left:0; bottom:0; width:100%; height:110px;
+  background:#5b0000; display:flex; justify-content:space-around; align-items:center; z-index:100;
+}
+.nav-btn{ width:70px; cursor:pointer; transition:0.08s; }
+.nav-btn:active{ transform:scale(0.88); }
+
+.back-btn{
+    position:fixed; left:10px; top:14px; width:44px; height:44px; border-radius:50%;
+    background:rgba(75,0,0,0.85); color:#fff; border:none; font-size:20px; cursor:pointer; z-index:200;
+}
+.back-btn:active{ transform:scale(0.9); }
+</style>
+</head>
+<body>
+<audio id="bgm" src="audio/bgm_main.mp3" loop></audio>
+
+<button class="back-btn" onclick="location.href='home.html'">←</button>
+
+<h1>カスタマイズ</h1>
+<div class="sub-note">現在は全て無料でお試しいただけます（今後、ガチャや短冊での入手アイテムを追加予定です）</div>
+
+<div class="tab-row">
+  <button class="tab-btn active" id="tabTheme" onclick="switchTab('theme')">背景テーマ</button>
+  <button class="tab-btn" id="tabSkin" onclick="switchTab('skin')">カードスキン</button>
+</div>
+
+<div class="panel active" id="panelTheme">
+  <div class="gallery" id="themeGallery"></div>
+</div>
+
+<div class="panel" id="panelSkin">
+  <div class="gallery" id="skinGallery"></div>
+</div>
+
+<script src="js/cards.js"></script>
+<script src="js/audio.js"></script>
+<script>
+/* =========================================================
+   背景テーマ・カードスキンの定義
+   新しいテーマ／スキンを追加したい場合は、下の配列に
+   1項目追加するだけでOK。画像はここで指定したパスに
+   実ファイルを用意してください。
+
+   ・背景テーマ:
+     battleBg … battle.html の背景に使う画像
+     subBg    … deck.html（図鑑・編成画面）の背景に使う画像
+     thumb    … カスタマイズ画面でのサムネイル
+   ・カードスキン:
+     folder … images/genshokugensho_cards/ と同じファイル名構成で
+              カード画像一式を置いたフォルダのパス
+     thumb  … サムネイル画像（未指定ならフォルダ内の代表カード画像を使用）
+   ========================================================= */
+const themes = [
+  {
+    id: "default",
+    name: "初期背景",
+    battleBg: "images/battle_field.png",
+    subBg: "images/zukan_background.png",
+    thumb: "images/battle_field.png"
+  },
+  {
+    id: "sakura",
+    name: "桜舞う戦場",
+    battleBg: "images/backgrounds/sakura_battle.png",
+    subBg: "images/backgrounds/sakura_zukan.png",
+    thumb: "images/backgrounds/sakura_thumb.png"
+  },
+  {
+    id: "night",
+    name: "星降る夜",
+    battleBg: "images/backgrounds/night_battle.png",
+    subBg: "images/backgrounds/night_zukan.png",
+    thumb: "images/backgrounds/night_thumb.png"
+  }
+];
+
+const skins = [
+  {
+    id: "default",
+    name: "通常スキン",
+    folder: "images/genshokugensho_cards/",
+    thumb: null // nullの場合は手持ちカードの1枚目を自動でサムネイルにする
+  },
+  {
+    id: "gold",
+    name: "ゴールドスキン",
+    folder: "images/skins/gold/",
+    thumb: null
+  },
+  {
+    id: "watercolor",
+    name: "水彩スキン",
+    folder: "images/skins/watercolor/",
+    thumb: null
+  }
+];
+
+const STORAGE_KEYS = {
+  battleBg: "selectedBattleBg",
+  zukanBg: "selectedZukanBg",
+  themeId: "selectedThemeId",
+  skinFolder: "selectedCardSkinFolder",
+  skinId: "selectedCardSkinId"
+};
+
+function switchTab(tab){
+  document.getElementById("panelTheme").classList.toggle("active", tab === "theme");
+  document.getElementById("panelSkin").classList.toggle("active", tab === "skin");
+  document.getElementById("tabTheme").classList.toggle("active", tab === "theme");
+  document.getElementById("tabSkin").classList.toggle("active", tab === "skin");
+}
+
+function selectTheme(theme){
+  localStorage.setItem(STORAGE_KEYS.battleBg, theme.battleBg);
+  localStorage.setItem(STORAGE_KEYS.zukanBg, theme.subBg);
+  localStorage.setItem(STORAGE_KEYS.themeId, theme.id);
+  document.body.style.backgroundImage = `url("${theme.subBg}")`;
+  renderThemeGallery();
+}
+
+function selectSkin(skin){
+  localStorage.setItem(STORAGE_KEYS.skinFolder, skin.folder);
+  localStorage.setItem(STORAGE_KEYS.skinId, skin.id);
+  renderSkinGallery();
+}
+
+function renderThemeGallery(){
+  const currentId = localStorage.getItem(STORAGE_KEYS.themeId) || "default";
+  const gallery = document.getElementById("themeGallery");
+  gallery.innerHTML = "";
+  themes.forEach(theme => {
+    const card = document.createElement("div");
+    card.className = "item-card" + (theme.id === currentId ? " selected" : "");
+    card.onclick = () => selectTheme(theme);
+    const img = document.createElement("img");
+    img.src = theme.thumb;
+    img.onerror = () => { img.style.opacity = "0.25"; };
+    const name = document.createElement("div");
+    name.className = "item-name";
+    name.textContent = theme.name;
+    card.appendChild(img);
+    card.appendChild(name);
+    if(theme.id === currentId){
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.textContent = "使用中";
+      card.appendChild(badge);
+    }
+    gallery.appendChild(card);
+  });
+}
+
+function renderSkinGallery(){
+  const ownedCards = JSON.parse(localStorage.getItem("ownedCards")) || [];
+  const currentId = localStorage.getItem(STORAGE_KEYS.skinId) || "default";
+  const gallery = document.getElementById("skinGallery");
+  gallery.innerHTML = "";
+  skins.forEach(skin => {
+    const card = document.createElement("div");
+    card.className = "item-card" + (skin.id === currentId ? " selected" : "");
+    card.onclick = () => selectSkin(skin);
+    const img = document.createElement("img");
+    if(skin.thumb){
+      img.src = skin.thumb;
+    } else if(ownedCards.length > 0){
+      img.src = skin.folder + ownedCards[0].image;
+    } else if(typeof cards !== "undefined" && cards.length > 0){
+      img.src = skin.folder + cards[0].image;
+    }
+    img.onerror = () => { img.style.opacity = "0.25"; };
+    const name = document.createElement("div");
+    name.className = "item-name";
+    name.textContent = skin.name;
+    card.appendChild(img);
+    card.appendChild(name);
+    if(skin.id === currentId){
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.textContent = "使用中";
+      card.appendChild(badge);
+    }
+    gallery.appendChild(card);
+  });
+}
+
+// 現在選択中の背景をこの画面自体にも反映
+(function applyCurrentZukanBg(){
+  const bg = localStorage.getItem(STORAGE_KEYS.zukanBg);
+  if(bg) document.body.style.backgroundImage = `url("${bg}")`;
+})();
+
+renderThemeGallery();
+renderSkinGallery();
+</script>
+
+<div class="bottom-nav">
+  <img src="images/btn_home.png"  class="nav-btn" onclick="location.href='home.html'">
+  <img src="images/btn_gacha.png" class="nav-btn" onclick="location.href='gacha.html'">
+  <img src="images/btn_deck.png"  class="nav-btn" onclick="location.href='deck.html'">
+  <img src="images/btn_battle.png" class="nav-btn" onclick="location.href='battle select.html'">
+</div>
+
+</body>
+</html>
